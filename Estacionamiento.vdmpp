@@ -1,0 +1,163 @@
+class Estacionamiento
+
+types
+  public ResultadoOperacion = <Exito> | <Fallo> | <Reintentar>;
+  public EstadoSistema = <Operativo> | <Saturado> | <FueraDeServicio>;
+
+instance variables
+  private capacidadTotal : nat1;
+  private plazas : seq of Plaza := [];
+  private plazasOcupadas : set of nat1 := {};
+  private vehiculosEstacionados : map token to nat1 := {|->};
+  private colaEspera : seq of token := [];
+  private estadoSistema : EstadoSistema := <Operativo>;
+  
+  inv card plazasOcupadas <= capacidadTotal;
+  inv rng vehiculosEstacionados subset plazasOcupadas;
+  inv len plazas <= capacidadTotal;
+
+operations
+  -- Constructor
+  public Estacionamiento: nat1 ==> Estacionamiento
+  Estacionamiento(capacidad) ==
+  (
+    capacidadTotal := capacidad;
+    plazas := [];
+    plazasOcupadas := {};
+    vehiculosEstacionados := {|->};
+    colaEspera := [];
+    estadoSistema := <Operativo>;
+    
+    for i = 1 to capacidad do
+      plazas := plazas ^ [new Plaza(i)];
+    
+    return self
+  )
+  pre capacidad > 0
+  post len plazas = capacidad and card plazasOcupadas = 0;
+  
+  public getCapacidadTotal: () ==> nat1
+  getCapacidadTotal() ==
+    return capacidadTotal;
+  
+  public consultarDisponibles: () ==> nat
+  consultarDisponibles() ==
+    return capacidadTotal - card plazasOcupadas;
+  
+  public getEstadoSistema: () ==> EstadoSistema
+  getEstadoSistema() ==
+    return estadoSistema;
+  
+  private buscarPlazaLibre: () ==> [nat1]
+  buscarPlazaLibre() ==
+  (
+    for i = 1 to len plazas do
+      if plazas(i).estaLibre() then
+        return i;
+    return nil
+  );
+  
+  private estaEnCola: token ==> bool
+  estaEnCola(vehiculoId) ==
+    return vehiculoId in set elems colaEspera;
+  
+  -- Actualizar estado del sistema
+  private actualizarEstado: () ==> ()
+  actualizarEstado() ==
+  (
+    if card plazasOcupadas = capacidadTotal then
+      estadoSistema := <Saturado>
+    else
+      estadoSistema := <Operativo>
+  );
+  
+  public asignarPlaza: token ==> ResultadoOperacion
+  asignarPlaza(vehiculoId) ==
+  (
+    dcl idPlaza : [nat1] := buscarPlazaLibre();
+    
+    if vehiculoId in set dom vehiculosEstacionados then
+      return <Fallo>;
+    
+    if idPlaza = nil then
+    (
+      if not estaEnCola(vehiculoId) then
+        colaEspera := colaEspera ^ [vehiculoId];
+      estadoSistema := <Saturado>;
+      return <Fallo>
+    )
+    else
+    (
+      plazas(idPlaza).ocupar(vehiculoId);
+      plazasOcupadas := plazasOcupadas union {idPlaza};
+      vehiculosEstacionados := vehiculosEstacionados munion {vehiculoId |-> idPlaza};
+      actualizarEstado();
+      return <Exito>
+    )
+  );
+  
+  public liberarPlaza: token ==> ResultadoOperacion
+  liberarPlaza(vehiculoId) ==
+  (
+    dcl idPlaza : nat1;
+    
+    if vehiculoId not in set dom vehiculosEstacionados then
+      return <Fallo>;
+    
+    idPlaza := vehiculosEstacionados(vehiculoId);
+    
+    plazas(idPlaza).liberar();
+    plazasOcupadas := plazasOcupadas \ {idPlaza};
+    vehiculosEstacionados := {vehiculoId} <-: vehiculosEstacionados;
+    
+    actualizarEstado();
+    procesarColaEspera();
+    
+    return <Exito>
+  );
+  
+  
+  private procesarColaEspera: () ==> ()
+  procesarColaEspera() ==
+  (
+    while len colaEspera > 0 and card plazasOcupadas < capacidadTotal do
+    (
+      dcl vehiculoEnEspera : token := hd colaEspera;
+      dcl idPlaza : [nat1];
+      
+      colaEspera := tl colaEspera;
+      idPlaza := buscarPlazaLibre();
+      
+      plazas(idPlaza).ocupar(vehiculoEnEspera);
+      plazasOcupadas := plazasOcupadas union {idPlaza};
+      vehiculosEstacionados := vehiculosEstacionados munion {vehiculoEnEspera |-> idPlaza};
+      actualizarEstado()
+    )
+  );
+  
+  public consultarPlazaVehiculo: token ==> [nat1]
+  consultarPlazaVehiculo(vehiculoId) ==
+  (
+    if vehiculoId in set dom vehiculosEstacionados then
+      return vehiculosEstacionados(vehiculoId)
+    else
+      return nil
+  );
+  
+  public estaEstacionado: token ==> bool
+  estaEstacionado(vehiculoId) ==
+    return vehiculoId in set dom vehiculosEstacionados;
+  
+  public getInfoOcupacion: () ==> nat * nat * nat
+  getInfoOcupacion() ==
+    return mk_(capacidadTotal, card plazasOcupadas, capacidadTotal - card plazasOcupadas);
+  
+  public getPlazasOcupadas: () ==> set of nat1
+  getPlazasOcupadas() ==
+    return plazasOcupadas;
+  
+  public getTamanoColaEspera: () ==> nat
+  getTamanoColaEspera() ==
+    return len colaEspera;
+
+end Estacionamiento

@@ -1,0 +1,63 @@
+class Plaza
+
+types
+  public EstadoPlaza = <Libre> | <Ocupada> | <Reservada> | <Mantenimiento>;
+
+instance variables
+  private id : nat1 := 1;
+  private estado : EstadoPlaza := <Libre>;
+  private vehiculoAsignado : [token] := nil;
+
+operations
+  -- Constructor
+  public Plaza: nat1 ==> Plaza
+  Plaza(identificador) ==
+  (
+    id := identificador;
+    estado := <Libre>;
+    vehiculoAsignado := nil;
+    return self
+  )
+  post estado = <Libre> and vehiculoAsignado = nil;
+  
+  -- Consultar ID
+  public getId: () ==> nat1
+  getId() ==
+    return id;
+  
+  -- Consultar estado
+  public getEstado: () ==> EstadoPlaza
+  getEstado() ==
+    return estado;
+  
+  -- Consultar vehículo asignado
+  public getVehiculo: () ==> [token]
+  getVehiculo() ==
+    return vehiculoAsignado;
+  
+  -- Ocupar plaza
+  public ocupar: token ==> ()
+  ocupar(vehiculoId) ==
+  (
+    estado := <Ocupada>;
+    vehiculoAsignado := vehiculoId;
+  )
+  pre estado = <Libre>
+  post estado = <Ocupada> and vehiculoAsignado = vehiculoId;
+  
+  -- Liberar plaza
+  public liberar: () ==> ()
+  liberar() ==
+  (
+    estado := <Libre>;
+    vehiculoAsignado := nil;
+  )
+  pre estado = <Ocupada>
+  post estado = <Libre> and vehiculoAsignado = nil;
+  
+  -- Verificar si está libre
+  public estaLibre: () ==> bool
+  estaLibre() ==
+    return estado = <Libre>;
+
+end Plaza

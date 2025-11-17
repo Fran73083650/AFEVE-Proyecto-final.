@@ -1,0 +1,78 @@
+class Vehiculo
+
+types
+  public TipoVehiculo = <Auto> | <Moto> | <Camioneta> | <Van> | <Microbus> | <Bicicleta>;
+  public EstadoVehiculo = <Buscando> | <Estacionando> | <Estacionado> | <Saliendo>;
+
+instance variables
+  private id : token := mk_token("DEFAULT");
+  private tipo : TipoVehiculo := <Auto>;
+  private matricula : seq of char := [];
+  private estado : EstadoVehiculo := <Buscando>;
+  private plazaAsignada : [nat1] := nil;
+
+operations
+  -- Constructor
+  public Vehiculo: token * TipoVehiculo * seq of char ==> Vehiculo
+  Vehiculo(identificador, tipoVeh, mat) ==
+  (
+    id := identificador;
+    tipo := tipoVeh;
+    matricula := mat;
+    estado := <Buscando>;
+    plazaAsignada := nil;
+    return self
+  )
+  pre len mat > 0;
+  
+  -- Consultar ID
+  public getId: () ==> token
+  getId() ==
+    return id;
+  
+  -- Consultar tipo
+  public getTipo: () ==> TipoVehiculo
+  getTipo() ==
+    return tipo;
+  
+  -- Consultar matrícula
+  public getMatricula: () ==> seq of char
+  getMatricula() ==
+    return matricula;
+  
+  -- Consultar estado
+  public getEstado: () ==> EstadoVehiculo
+  getEstado() ==
+    return estado;
+  
+  -- Consultar plaza asignada
+  public getPlazaAsignada: () ==> [nat1]
+  getPlazaAsignada() ==
+    return plazaAsignada;
+  
+  -- Cambiar estado a Estacionando
+  public setEstadoEstacionando: () ==> ()
+  setEstadoEstacionando() ==
+    estado := <Estacionando>;
+  
+  -- Asignar plaza
+  public asignarPlaza: nat1 ==> ()
+  asignarPlaza(idPlaza) ==
+  (
+    plazaAsignada := idPlaza;
+    estado := <Estacionado>;
+  )
+  pre estado = <Buscando> or estado = <Estacionando>
+  post plazaAsignada = idPlaza and estado = <Estacionado>;
+  
+  -- Liberar plaza
+  public liberarPlaza: () ==> ()
+  liberarPlaza() ==
+  (
+    plazaAsignada := nil;
+    estado := <Saliendo>;
+  )
+  pre estado = <Estacionado>
+  post plazaAsignada = nil and estado = <Saliendo>;
+
+end Vehiculo

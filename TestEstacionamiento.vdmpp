@@ -1,0 +1,488 @@
+
+class TestEstacionamiento
+
+instance variables
+  private resultados : seq of bool := [];
+
+operations
+ 
+  -- PRUEBAS DE LA CLASE PLAZA
+  
+  
+  -- Test 1: Constructor de Plaza
+  public testPlazaConstructor: () ==> bool
+  testPlazaConstructor() ==
+  (
+    dcl plaza : Plaza := new Plaza(1);
+    return plaza.getId() = 1 and 
+           plaza.getEstado() = <Libre> and 
+           plaza.getVehiculo() = nil and
+           plaza.estaLibre();
+  );
+  
+  -- Test 2: Ocupar plaza
+  public testPlazaOcupar: () ==> bool
+  testPlazaOcupar() ==
+  (
+    dcl plaza : Plaza := new Plaza(5);
+    dcl vehiculoId : token := mk_token("TEST001");
+    plaza.ocupar(vehiculoId);
+    return plaza.getEstado() = <Ocupada> and 
+           plaza.getVehiculo() = vehiculoId and
+           not plaza.estaLibre();
+  );
+  
+  -- Test 3: Liberar plaza
+  public testPlazaLiberar: () ==> bool
+  testPlazaLiberar() ==
+  (
+    dcl plaza : Plaza := new Plaza(3);
+    plaza.ocupar(mk_token("TEST002"));
+    plaza.liberar();
+    return plaza.getEstado() = <Libre> and 
+           plaza.getVehiculo() = nil and
+           plaza.estaLibre();
+  );
+  
+  
+  -- PRUEBAS DE LA CLASE VEHICULO
+  
+  
+  -- Test 4: Constructor de Vehiculo
+  public testVehiculoConstructor: () ==> bool
+  testVehiculoConstructor() ==
+  (
+    dcl v : Vehiculo := new Vehiculo(mk_token("V001"), <Auto>, "ABC123");
+    return v.getId() = mk_token("V001") and
+           v.getTipo() = <Auto> and
+           v.getMatricula() = "ABC123" and
+           v.getEstado() = <Buscando> and
+           v.getPlazaAsignada() = nil;
+  );
+  
+  -- Test 5: Todos los tipos de vehículo
+  public testTiposVehiculo: () ==> bool
+  testTiposVehiculo() ==
+  (
+    dcl v1 : Vehiculo := new Vehiculo(mk_token("V1"), <Auto>, "A1");
+    dcl v2 : Vehiculo := new Vehiculo(mk_token("V2"), <Moto>, "M1");
+    dcl v3 : Vehiculo := new Vehiculo(mk_token("V3"), <Camioneta>, "C1");
+    dcl v4 : Vehiculo := new Vehiculo(mk_token("V4"), <Van>, "V1");
+    dcl v5 : Vehiculo := new Vehiculo(mk_token("V5"), <Microbus>, "MB1");
+    dcl v6 : Vehiculo := new Vehiculo(mk_token("V6"), <Bicicleta>, "B1");
+    
+    return v1.getTipo() = <Auto> and
+           v2.getTipo() = <Moto> and
+           v3.getTipo() = <Camioneta> and
+           v4.getTipo() = <Van> and
+           v5.getTipo() = <Microbus> and
+           v6.getTipo() = <Bicicleta>;
+  );
+  
+  -- Test 6: Asignar plaza a vehículo
+  public testVehiculoAsignarPlaza: () ==> bool
+  testVehiculoAsignarPlaza() ==
+  (
+    dcl v : Vehiculo := new Vehiculo(mk_token("V001"), <Auto>, "ABC123");
+    v.asignarPlaza(5);
+    return v.getPlazaAsignada() = 5 and v.getEstado() = <Estacionado>;
+  );
+  
+  -- Test 7: Liberar plaza de vehículo
+  public testVehiculoLiberarPlaza: () ==> bool
+  testVehiculoLiberarPlaza() ==
+  (
+    dcl v : Vehiculo := new Vehiculo(mk_token("V001"), <Auto>, "ABC123");
+    v.asignarPlaza(3);
+    v.liberarPlaza();
+    return v.getPlazaAsignada() = nil and v.getEstado() = <Saliendo>;
+  );
+  
+  -- Test 7b: Asignar plaza con estado Estacionando
+  public testVehiculoAsignarPlazaEstacionando: () ==> bool
+  testVehiculoAsignarPlazaEstacionando() ==
+  (
+    dcl v : Vehiculo := new Vehiculo(mk_token("V002"), <Moto>, "XYZ789");
+    dcl estadoInicial : Vehiculo`EstadoVehiculo;
+    dcl estadoFinal : Vehiculo`EstadoVehiculo;
+    
+    v.setEstadoEstacionando();
+    estadoInicial := v.getEstado();
+    v.asignarPlaza(8);
+    estadoFinal := v.getEstado();
+    
+    return estadoInicial = <Estacionando> and 
+           v.getPlazaAsignada() = 8 and 
+           estadoFinal = <Estacionado>;
+  );
+  
+ 
+  -- PRUEBAS DE LA CLASE ESTACIONAMIENTO 
+ 
+  
+  -- Test 8: Constructor de Estacionamiento
+  public testEstacionamientoConstructor: () ==> bool
+  testEstacionamientoConstructor() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(10);
+    return est.getCapacidadTotal() = 10 and 
+           est.consultarDisponibles() = 10 and
+           est.getEstadoSistema() = <Operativo> and
+           card est.getPlazasOcupadas() = 0 and
+           est.getTamanoColaEspera() = 0;
+  );
+  
+  -- Test 9: Asignación exitosa única
+  public testAsignacionUnica: () ==> bool
+  testAsignacionUnica() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(5);
+    dcl resultado : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("VEH001"));
+    
+    return resultado = <Exito> and 
+           est.consultarDisponibles() = 4 and
+           est.estaEstacionado(mk_token("VEH001")) and
+           est.consultarPlazaVehiculo(mk_token("VEH001")) = 1;
+  );
+  
+  -- Test 10: Asignación múltiple
+  public testAsignacionMultiple: () ==> bool
+  testAsignacionMultiple() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(10);
+    dcl r1 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V1"));
+    dcl r2 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V2"));
+    dcl r3 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V3"));
+    dcl info : nat * nat * nat := est.getInfoOcupacion();
+    
+    return r1 = <Exito> and r2 = <Exito> and r3 = <Exito> and
+           est.consultarDisponibles() = 7 and
+           card est.getPlazasOcupadas() = 3;
+  );
+  
+  -- Test 11: Liberación de plaza
+  public testLiberacion: () ==> bool
+  testLiberacion() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(5);
+    dcl vehiculoId : token := mk_token("VEH001");
+    dcl r1 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(vehiculoId);
+    dcl r2 : Estacionamiento`ResultadoOperacion := est.liberarPlaza(vehiculoId);
+    
+    return r1 = <Exito> and r2 = <Exito> and 
+           est.consultarDisponibles() = 5 and
+           not est.estaEstacionado(vehiculoId) and
+           est.consultarPlazaVehiculo(vehiculoId) = nil;
+  );
+  
+  -- Test 12: Liberar vehículo no estacionado
+  public testLiberarNoExistente: () ==> bool
+  testLiberarNoExistente() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(5);
+    dcl resultado : Estacionamiento`ResultadoOperacion := est.liberarPlaza(mk_token("NOEXISTE"));
+    return resultado = <Fallo>;
+  );
+  
+  -- Test 13: Intentar asignar vehículo ya estacionado
+  public testAsignarVehiculoYaEstacionado: () ==> bool
+  testAsignarVehiculoYaEstacionado() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(5);
+    dcl vehiculoId : token := mk_token("DUPLICADO");
+    dcl r1 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(vehiculoId);
+    dcl r2 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(vehiculoId);
+    return r1 = <Exito> and r2 = <Fallo>;
+  );
+  
+
+  -- PRUEBAS DE SATURACIÓN Y COLA DE ESPERA
+  
+  
+  -- Test 14: Saturación completa
+  public testSaturacion: () ==> bool
+  testSaturacion() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(2);
+    dcl r1 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("VEH001"));
+    dcl r2 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("VEH002"));
+    dcl r3 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("VEH003"));
+    
+    return r1 = <Exito> and r2 = <Exito> and r3 = <Fallo> and
+           est.getEstadoSistema() = <Saturado> and
+           est.getTamanoColaEspera() = 1 and
+           est.consultarDisponibles() = 0;
+  );
+  
+  -- Test 15: Cola de espera con múltiples vehículos
+  public testColaEsperaMultiple: () ==> bool
+  testColaEsperaMultiple() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(2);
+    dcl r1 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V1"));
+    dcl r2 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V2"));
+    dcl r3 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V3"));
+    dcl r4 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V4"));
+    
+    return r1 = <Exito> and r2 = <Exito> and 
+           r3 = <Fallo> and r4 = <Fallo> and
+           est.getTamanoColaEspera() = 2;
+  );
+  
+  -- Test 16: Intentar agregar el mismo vehículo a la cola dos veces
+  public testColaVehiculoDuplicado: () ==> bool
+  testColaVehiculoDuplicado() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(1);
+    dcl r1 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V1"));
+    dcl r2 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V2"));
+    dcl r3 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V2"));
+    return r1 = <Exito> and r2 = <Fallo> and r3 = <Fallo> and
+           est.getTamanoColaEspera() = 1;
+  );
+  
+  -- Test 17: Procesamiento automático de cola
+  public testProcesamientoColaAutomatico: () ==> bool
+  testProcesamientoColaAutomatico() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(2);
+    dcl r1 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("VEH001"));
+    dcl r2 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("VEH002"));
+    dcl r3 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("VEH003"));
+    dcl r4 : Estacionamiento`ResultadoOperacion := est.liberarPlaza(mk_token("VEH001"));
+    
+    return r3 = <Fallo> and r4 = <Exito> and
+           est.getTamanoColaEspera() = 0 and
+           est.estaEstacionado(mk_token("VEH003")) and
+           est.getEstadoSistema() = <Saturado>;
+  );
+  
+  -- Test 18: Cola se vacía completamente
+  public testColaVaciado: () ==> bool
+  testColaVaciado() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(1);
+    dcl r1 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V1"));
+    dcl r2 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V2"));
+    dcl r3 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V3"));
+    dcl r4 : Estacionamiento`ResultadoOperacion := est.liberarPlaza(mk_token("V1"));
+    dcl r5 : Estacionamiento`ResultadoOperacion := est.liberarPlaza(mk_token("V2"));
+    
+    return est.getTamanoColaEspera() = 0 and
+           est.estaEstacionado(mk_token("V3")) and
+           est.consultarDisponibles() = 0;
+  );
+  
+  -- Test 18b: Liberar plaza cuando ya no hay cola
+  public testLiberarSinColaEspera: () ==> bool
+  testLiberarSinColaEspera() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(3);
+    dcl r1 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V1"));
+    dcl r2 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V2"));
+    dcl r3 : Estacionamiento`ResultadoOperacion := est.liberarPlaza(mk_token("V1"));
+    
+    return r3 = <Exito> and 
+           est.getTamanoColaEspera() = 0 and
+           est.consultarDisponibles() = 2;
+  );
+  
+  -- Test 18c: Procesar cola sin saturar (else branch en procesarColaEspera)
+  public testProcesarColaSinLlenar: () ==> bool
+  testProcesarColaSinLlenar() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(5);
+    dcl r : Estacionamiento`ResultadoOperacion;
+    
+    -- Llenar el estacionamiento (5 plazas)
+    r := est.asignarPlaza(mk_token("V1"));
+    r := est.asignarPlaza(mk_token("V2"));
+    r := est.asignarPlaza(mk_token("V3"));
+    r := est.asignarPlaza(mk_token("V4"));
+    r := est.asignarPlaza(mk_token("V5"));
+    
+    -- Agregar solo 1 vehículo a la cola
+    r := est.asignarPlaza(mk_token("V6"));
+    
+    -- Liberar 3 plazas: procesará V6 pero quedarán 3 ocupadas de 5
+    r := est.liberarPlaza(mk_token("V1"));
+    r := est.liberarPlaza(mk_token("V2"));
+    r := est.liberarPlaza(mk_token("V3"));
+    
+    -- Estado final: V6 procesado, 3 plazas ocupadas, estado Operativo
+    return est.getTamanoColaEspera() = 0 and
+           est.estaEstacionado(mk_token("V6")) and
+           est.consultarDisponibles() = 2 and
+           est.getEstadoSistema() = <Operativo>;
+  );
+  
+  
+  -- PRUEBAS DE POLITICA DE ASIGNACION
+  
+  
+  -- Test 19: Asignación secuencial
+  public testAsignacionSecuencial: () ==> bool
+  testAsignacionSecuencial() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(5);
+    dcl r1 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V1"));
+    dcl r2 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V2"));
+    dcl r3 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V3"));
+    
+    return est.consultarPlazaVehiculo(mk_token("V1")) = 1 and
+           est.consultarPlazaVehiculo(mk_token("V2")) = 2 and
+           est.consultarPlazaVehiculo(mk_token("V3")) = 3;
+  );
+  
+  -- Test 20: Reutilización de plaza liberada
+  public testReutilizacionPlaza: () ==> bool
+  testReutilizacionPlaza() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(5);
+    dcl r1 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V1"));
+    dcl r2 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V2"));
+    dcl r3 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V3"));
+    dcl r4 : Estacionamiento`ResultadoOperacion := est.liberarPlaza(mk_token("V2"));
+    dcl r5 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V4"));
+    
+    return est.consultarPlazaVehiculo(mk_token("V4")) = 2;
+  );
+  
+  
+  -- PRUEBAS DE TRANSICIONES DE ESTADO
+  
+  
+  -- Test 21: Transición Operativo -> Saturado
+  public testTransicionOperativoSaturado: () ==> bool
+  testTransicionOperativoSaturado() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(2);
+    dcl inicial : Estacionamiento`EstadoSistema := est.getEstadoSistema();
+    dcl r1 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V1"));
+    dcl medio : Estacionamiento`EstadoSistema := est.getEstadoSistema();
+    dcl r2 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V2"));
+    dcl final : Estacionamiento`EstadoSistema := est.getEstadoSistema();
+    
+    return inicial = <Operativo> and medio = <Operativo> and final = <Saturado>;
+  );
+  
+  -- Test 22: Transicion Saturado -> Operativo
+  public testTransicionSaturadoOperativo: () ==> bool
+  testTransicionSaturadoOperativo() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(2);
+    dcl r1 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V1"));
+    dcl r2 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V2"));
+    dcl saturado : Estacionamiento`EstadoSistema := est.getEstadoSistema();
+    dcl r3 : Estacionamiento`ResultadoOperacion := est.liberarPlaza(mk_token("V1"));
+    dcl operativo : Estacionamiento`EstadoSistema := est.getEstadoSistema();
+    
+    return saturado = <Saturado> and operativo = <Operativo>;
+  );
+  
+
+  -- PRUEBAS DE INFORMACION Y CONSULTAS
+ 
+  
+  -- Test 23: getInfoOcupacion
+  public testInfoOcupacion: () ==> bool
+  testInfoOcupacion() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(10);
+    dcl r1 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V1"));
+    dcl r2 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V2"));
+    dcl r3 : Estacionamiento`ResultadoOperacion := est.asignarPlaza(mk_token("V3"));
+    dcl info : nat * nat * nat := est.getInfoOcupacion();
+    
+    return info = mk_(10, 3, 7);
+  );
+  
+  -- Test 24: Consultar vehiculo no existente
+  public testConsultarVehiculoNoExistente: () ==> bool
+  testConsultarVehiculoNoExistente() ==
+  (
+    dcl est : Estacionamiento := new Estacionamiento(5);
+    return est.consultarPlazaVehiculo(mk_token("NOEXISTE")) = nil and
+           not est.estaEstacionado(mk_token("NOEXISTE"));
+  );
+  
+  -- Test 25: Metodos de reporte
+  public testMetodosReporte: () ==> bool
+  testMetodosReporte() ==
+  (
+    dcl testTemp : TestEstacionamiento := new TestEstacionamiento();
+    dcl total : nat;
+    dcl exitosas : nat;
+    
+    -- Agregar resultados mixtos para cubrir getPruebasExitosas
+    testTemp.agregarResultado(true);
+    testTemp.agregarResultado(false);
+    testTemp.agregarResultado(true);
+    
+    total := testTemp.getTotalPruebas();
+    exitosas := testTemp.getPruebasExitosas();
+    
+    return total = 3 and exitosas = 2;
+  );
+  
+  
+  
+  public run: () ==> bool
+  run() ==
+  (
+    resultados := [
+      testPlazaConstructor(),
+      testPlazaOcupar(),
+      testPlazaLiberar(),
+      testVehiculoConstructor(),
+      testTiposVehiculo(),
+      testVehiculoAsignarPlaza(),
+      testVehiculoLiberarPlaza(),
+      testVehiculoAsignarPlazaEstacionando(),
+      testEstacionamientoConstructor(),
+      testAsignacionUnica(),
+      testAsignacionMultiple(),
+      testLiberacion(),
+      testLiberarNoExistente(),
+      testAsignarVehiculoYaEstacionado(),
+      testSaturacion(),
+      testColaEsperaMultiple(),
+      testColaVehiculoDuplicado(),
+      testProcesamientoColaAutomatico(),
+      testColaVaciado(),
+      testLiberarSinColaEspera(),
+      testProcesarColaSinLlenar(),
+      testAsignacionSecuencial(),
+      testReutilizacionPlaza(),
+      testTransicionOperativoSaturado(),
+      testTransicionSaturadoOperativo(),
+      testInfoOcupacion(),
+      testConsultarVehiculoNoExistente(),
+      testMetodosReporte()
+    ];
+    
+    return forall r in set elems resultados & r = true;
+  );
+  
+  -- Método auxiliar para agregar resultados
+  public agregarResultado: bool ==> ()
+  agregarResultado(resultado) ==
+    resultados := resultados ^ [resultado];
+  
+  -- Obtener número de pruebas
+  public getTotalPruebas: () ==> nat
+  getTotalPruebas() ==
+    return len resultados;
+  
+  -- Obtener pruebas exitosas
+  public getPruebasExitosas: () ==> nat
+  getPruebasExitosas() ==
+  (
+    dcl contador : nat := 0;
+    for r in resultados do
+      if r then
+        contador := contador + 1;
+    return contador;
+  );
+
+end TestEstacionamiento
